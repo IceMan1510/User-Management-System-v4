@@ -16,6 +16,7 @@
     <h2 class="text-center">Log In</h2>
     <!-- Email input -->
     <div class="form-outline">
+      <!-- svelte-ignore a11y-label-has-associated-control -->
       <label class="form-label">Email address</label>
       <input
         type="email"
@@ -29,6 +30,7 @@
 
     <!-- Password input -->
     <div class="form-outline">
+      <!-- svelte-ignore a11y-label-has-associated-control -->
       <label class="form-label">Password</label>
       <input
         type="password"

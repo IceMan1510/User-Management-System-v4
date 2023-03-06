@@ -4,7 +4,7 @@ const Addresses = require("../Models/addresses");
 const Cities = require("../Models/cities");
 const States = require("../Models/states");
 const Users = require("../Models/users");
-const { Op, where } = require("sequelize");
+const { Op } = require("sequelize");
 
 exports.getAllUsersService = async (page) => {
   const limit = 4;

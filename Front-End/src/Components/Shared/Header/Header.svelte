@@ -23,6 +23,7 @@
       >
         <i class="fa fa-user" /> Welcome, {userName}
       </button>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
       <div
         class="dropdown-menu"
         on:click={() => {
@@ -30,6 +31,7 @@
         }}
         aria-labelledby="dropdownMenuButton"
       >
+        <!-- svelte-ignore a11y-invalid-attribute -->
         <a class="dropdown-item" href="#">Log Out</a>
       </div>
     </div>
