@@ -1,7 +1,5 @@
 <script>
   import Table from "./Table.svelte";
-  var headerToken = "";
-  var loggedIn = false;
   import toast, { Toaster } from "svelte-french-toast";
   import UserForm from "../User Action/UserForm.svelte";
   import Header from "../Shared/Header/Header.svelte";
@@ -12,12 +10,14 @@
   let totalPages = 0;
   let totalRecords = 0;
   let loading = true;
-  let userName = "";
+  let userName =
+    sessionStorage.length === 0 ? "" : sessionStorage.getItem("userName");
   $: page = 1;
-  let auth = null;
   let searchData = "";
+  console.log(sessionStorage.length);
+  $: block = sessionStorage.length === 0 ? "logIn" : "dashboard";
+
   let totalRecordPerPage = "";
-  $: block = "logIn";
   $: buttonStatusOnEvent = (event) => {
     if (event.detail.block === "userForm") {
       block = "userForm";
@@ -30,7 +30,6 @@
       getSingleId(searchData);
     } else if (event.detail.block === "logIn") {
       block = "logIn";
-      headerToken.accessToken = "";
     }
   };
   $: pageNumber = (e) => {
@@ -57,12 +56,17 @@
           password: e.detail.password,
         }),
       });
-
-      headerToken = await res.json();
-      userName = headerToken.payload;
+      const data = await res.json();
+      sessionStorage.setItem("auth", data.accessToken);
+      userName = data.payload;
+      sessionStorage.setItem("userName", data.payload);
+      sessionStorage.setItem("userEmail", e.detail.email);
       const status = res.status;
       console.log(status);
       if (status === 200) {
+        toast.success(`Welcome ${data.payload} `, {
+          position: "bottom-center",
+        });
         block = "dashboard";
       } else {
         toast.error(`Email Or Password Failed`, {
@@ -75,15 +79,12 @@
   };
   const fetchData = async () => {
     try {
-      console.log(headerToken);
-
       const url = `http://localhost:4000/user/?page=${page}`;
-
       const res = await fetch(url, {
         credentials: "include",
         method: "GET",
         headers: {
-          auth: await headerToken.accessToken,
+          auth: sessionStorage.getItem("auth"),
         },
       });
       let response = await res.json();
@@ -94,6 +95,8 @@
       totalRecords = response.totalRecords; //Total record in the db
       totalRecordPerPage = userData.length; //Records per page
     } catch (error) {
+      block = "logIn";
+      console.log(block);
       console.log(error);
     } finally {
       () => {
@@ -107,7 +110,7 @@
       const res = await fetch("http://localhost:4000/user/" + e.detail, {
         method: "DELETE",
         headers: {
-          auth: await headerToken.accessToken,
+          auth: sessionStorage.getItem("auth"),
         },
       });
       const response = await res.text();
@@ -157,7 +160,7 @@
 
             headers: {
               "Content-Type": "application/json",
-              auth: await headerToken.accessToken,
+              auth: sessionStorage.getItem("auth"),
             },
             body: JSON.stringify({
               f_name: updatedData.f_name,
@@ -179,10 +182,11 @@
               city_id: updatedData.city_id,
               add_id: updatedData.add_id,
               state_id: updatedData.state_id,
+              updatedBy: sessionStorage.getItem("userEmail"),
             }),
           }
         );
-        const response = await res;
+        const response = res;
         var resText = await response.text();
         console.log(resText);
         if (response.status === 200) {
@@ -208,12 +212,12 @@
         credentials: "include",
         method: "GET",
         headers: {
-          auth: await headerToken.accessToken,
+          auth: await sessionStorage.getItem("auth"),
         },
       });
       let response = await res.json();
       console.log(response);
-      console.log(await headerToken.accessToken);
+
       // foundSearchData = foundSearchData.push(response);
       foundSearchData = [];
       for (let index = 0; index < response.length; index++) {
@@ -239,7 +243,7 @@
       const res = await fetch("http://localhost:4000/user/", {
         method: "POST",
         headers: {
-          auth: await headerToken.accessToken,
+          auth: sessionStorage.getItem("auth"),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -257,6 +261,7 @@
           city_name: dataToBeAdded.city_name,
           zip_code: dataToBeAdded.zip_code,
           state_name: dataToBeAdded.state_name,
+          createdBy: sessionStorage.getItem("userEmail"),
         }),
       });
       const response = await res.text();

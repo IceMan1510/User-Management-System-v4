@@ -131,7 +131,11 @@
 </script>
 
 <main>
-  <h2 class="text-center pt-2 font-weight-bold">Registration Form</h2>
+  <h2 class="text-center pt-2 font-weight-bold">
+    {dataToBeUpdated === undefined || dataToBeUpdated === ""
+      ? "Registration Form"
+      : "Update Form"}
+  </h2>
   <div class="container center-div w-75">
     <div class="row justify-content-center">
       <div class="col-md-8">
@@ -476,7 +480,10 @@
               class="btn btn-primary text-center"
               on:click|preventDefault={() => {
                 handleButton(dataToBeUpdated);
-              }}>Register</button
+              }}
+              >{dataToBeUpdated === undefined || dataToBeUpdated === ""
+                ? "Register"
+                : "Update"}</button
             >
           </div>
         </form>

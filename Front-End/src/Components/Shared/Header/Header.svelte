@@ -2,8 +2,9 @@
   import { createEventDispatcher } from "svelte";
   $: searchField = "";
   export let block;
+  import { tooltip } from "@svelte-plugins/tooltips";
   export let userName;
-  console.log(block);
+  console.log(userName);
   const dispatch = createEventDispatcher();
 </script>
 
@@ -11,6 +12,8 @@
   <div class="row">
     <div class="col-sm-5 d-flex ">
       <h2>User <b>Management</b></h2>
+    </div>
+    <div class="col-sm-7">
       <button
         type="button"
         class={block === "logIn"
@@ -21,12 +24,20 @@
         aria-haspopup="true"
         aria-expanded="false"
       >
-        <i class="fa fa-user" /> Welcome, {userName}
+        <i
+          class="fa fa-user"
+          use:tooltip={{
+            content: `Hello ${userName}`,
+            position: "bottom",
+            arrow: false,
+          }}
+        />
       </button>
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <div
         class="dropdown-menu"
         on:click={() => {
+          window.sessionStorage.clear();
           dispatch("message", { block: "logIn" });
         }}
         aria-labelledby="dropdownMenuButton"
@@ -34,8 +45,6 @@
         <!-- svelte-ignore a11y-invalid-attribute -->
         <a class="dropdown-item" href="#">Log Out</a>
       </div>
-    </div>
-    <div class="col-sm-7">
       <button
         class={block === "logIn" ? "d-none" : "btn btn-secondary"}
         on:click={() => {
@@ -52,6 +61,7 @@
         ><i class="material-icons">&#xe88a;</i>
         <span>User Dashboard</span></button
       >
+
       {#if block === "dashboard" || block === "searchField"}<input
           type="search"
           placeholder="Email To Search + Enter"

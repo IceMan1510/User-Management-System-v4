@@ -40,10 +40,9 @@ exports.getAllUsersService = async (page) => {
   //The count method works same as
   //SELECT count(*) FROM Users;
   const totalRecords = await Users.count();
-  console.log(totalRecords);
 
   return {
-    data: dataRest(data),
+    data: dataRestructure(data),
     totalRecords: totalRecords,
     totalPages: Math.ceil(totalRecords / limit),
   };
@@ -75,8 +74,8 @@ exports.getSingleUserService = async (id) => {
       },
     ],
   });
-
-  return dataRest(data);
+  console.log(dataRestructure(data).length);
+  return dataRestructure(data);
 };
 
 //The specified method works like soft delete where we are just updating the del column value to 1.
@@ -102,74 +101,94 @@ exports.updateUserService = async (id, body) => {
   const userExists = await Users.findAll({ where: { u_id: `${id}` } });
   console.log(userExists);
   if (userExists.length === 0) {
+    console.log(userExists.length === 0);
     return false;
   } else {
-    const updateUser = await Users.update(
-      {
-        f_name: body.f_name,
-        m_name: body.m_name,
-        l_name: body.l_name,
-        email: body.email,
-        contact: body.contact,
-        password: body.password,
-        date_of_birth: body.date_of_birth,
-        gender: body.gender,
-      },
-      { where: { u_id: `${id}` } }
-    );
-    const updateAddress = await Addresses.update(
-      {
-        address_line1: body.address_line1,
-        address_line2: body.address_line2,
-        landmark: body.landmark,
-        zip_code: body.zip_code,
-      },
-      { where: { add_id: `${body.add_id}` } }
-    );
-    const updateCity = await Addresses.update(
-      { city_name: body.city_name, stateStateId: mapState(body.state_name) },
-      { where: { city_id: `${body.city_id}` } }
-    );
+    const result = await sequelize.transaction(async (t) => {
+      const updateUser = await Users.update(
+        {
+          f_name: body.f_name,
+          m_name: body.m_name,
+          l_name: body.l_name,
+          email: body.email,
+          contact: body.contact,
+          password: body.password,
+          date_of_birth: body.date_of_birth,
+          gender: body.gender,
+          updatedby: body.updatedBy,
+        },
+        { where: { u_id: `${id}` } },
+        { transaction: t }
+      );
+      const updateAddress = await Addresses.update(
+        {
+          address_line1: body.address_line1,
+          address_line2: body.address_line2,
+          landmark: body.landmark,
+          zip_code: body.zip_code,
+        },
+        { where: { add_id: `${body.add_id}` } },
+        { transaction: t }
+      );
+      const updateCity = await Addresses.update(
+        {
+          city_name: body.city_name,
+          stateStateId: mapState(body.state_name),
+        },
+        { where: { city_id: `${body.city_id}` } },
+        { transaction: t }
+      );
+    });
     return true;
   }
 };
 // The specified method inserts the user based on the parameters defined in the models
-//The equivalent query implementation can be described as below
+// The equivalent query implementation can be described as below
 // INSERT INTO ums.users (f_name, m_name, l_name, email, contact, password, date_of_birth, gender) VALUES
 // ('<FirstName>', '<MiddleName>', '<LastName>', '<MiddleName>', '<Contact>', '<Password>', '<Date Of Birth>', '<Gender>')
 // INSERT INTO cities (city_name, state_id) VALUES ('<city_name>', <state_id>)
 // INSERT INTO ums.addresses ( address_line1, address_line2, landmark,zip_code, city_id,u_id) VALUES ( '<Address_line1>', '<Address_line2>', '<landmark>','<zip_code>', <city_Id>,<User_id>);
 exports.createUserService = async (user) => {
-  console.log(user);
   user.email = user.email.toLowerCase();
   const hash = bcrypt.hashSync(user.password, 10);
   user.password = hash;
   const isUnique = await Users.findAll({ where: { email: `${user.email}` } });
-
   if (isUnique.length !== 0) {
     return { success: false, body: `Email already exists` };
   } else {
-    const createCity = await Cities.create({
-      city_name: user.city_name,
-      stateStateId: mapState(user.state_name),
-    });
-    const createUser = await Users.create({
-      f_name: user.f_name,
-      m_name: user.m_name,
-      l_name: user.l_name,
-      email: user.email,
-      contact: user.contact,
-      password: user.password,
-      date_of_birth: user.date_of_birth,
-      gender: user.gender,
-    });
-    const createAddress = await Addresses.create({
-      address_line1: user.address_line1,
-      address_line2: user.address_line2,
-      landmark: user.landmark,
-      zip_code: user.zip_code,
-      userUId: createUser.u_id,
-      cityCityId: createCity.city_id,
+    const result = await sequelize.transaction(async (t) => {
+      const createCity = await Cities.create(
+        {
+          city_name: user.city_name,
+          stateStateId: mapState(user.state_name),
+        },
+        { transaction: t }
+      );
+      const createUser = await Users.create(
+        {
+          f_name: user.f_name,
+          m_name: user.m_name,
+          l_name: user.l_name,
+          email: user.email,
+          contact: user.contact,
+          password: user.password,
+          date_of_birth: user.date_of_birth,
+          gender: user.gender,
+          createdby: user.createdBy,
+        },
+        { transaction: t }
+      );
+      const createAddress = await Addresses.create(
+        {
+          address_line1: user.address_line1,
+          address_line2: user.address_line2,
+          landmark: user.landmark,
+          zip_code: user.zip_code,
+          userUId: createUser.u_id,
+          cityCityId: createCity.city_id,
+        },
+        { transaction: t }
+      );
     });
     return {
       success: true,
@@ -270,7 +289,7 @@ var mapState = (State) => {
   }
 };
 
-const dataRest = (data) => {
+const dataRestructure = (data) => {
   const result = [];
   for (let index = 0; index < data.length; index++) {
     const userData = data[index].user;

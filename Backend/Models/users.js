@@ -52,6 +52,15 @@ const Users = sequelize.define("users", {
     defaultValue: "0",
     allowNull: false,
   },
+  createdby: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+  },
+  updatedby: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+  },
 });
+
 //Exporting the module
 module.exports = Users;

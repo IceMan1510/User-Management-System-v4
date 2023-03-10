@@ -210,13 +210,7 @@ exports.loginUser = async (req, res) => {
     console.log(result);
     if (result.success) {
       const accessToken = createTokens(req.body);
-      // res
-      //   .cookie("access-token", accessToken, {
-      //     maxAge: 36000000,
-      //     httpOnly: true,
-      //   })
-      //   .status(200)
-      //   .json("Logged In Successfully");
+
       res.status(200).send({
         accessToken: accessToken,
         payload: await result.payload,

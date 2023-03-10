@@ -1,6 +1,6 @@
 <script>
   let loading = true;
-  let limit = 2;
+  let limit = 4;
   import { createEventDispatcher, onMount } from "svelte";
   import { tooltip } from "@svelte-plugins/tooltips";
 

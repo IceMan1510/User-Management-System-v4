@@ -17,7 +17,9 @@
     <!-- Email input -->
     <div class="form-outline">
       <!-- svelte-ignore a11y-label-has-associated-control -->
-      <label class="form-label">Email address</label>
+      <label class="form-label"
+        >Email address<span class="text-danger">*</span></label
+      >
       <input
         type="email"
         placeholder="Email Id"
@@ -31,7 +33,9 @@
     <!-- Password input -->
     <div class="form-outline">
       <!-- svelte-ignore a11y-label-has-associated-control -->
-      <label class="form-label">Password</label>
+      <label class="form-label"
+        >Password<span class="text-danger">*</span></label
+      >
       <input
         type="password"
         title="Enter a valid password"
@@ -63,4 +67,7 @@
     margin: 2px 0 0;
     font-size: 24px;
   } */
+  .btn {
+    background-color: #299be4;
+  }
 </style>

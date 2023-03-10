@@ -4,7 +4,6 @@ var cors = require("cors");
 const bodyParser = require("body-parser");
 const PORT = 4000;
 const app = express();
-const cookieParser = require("cookie-parser");
 const sequelize = require("./Config/database");
 const Users = require("./Models/users");
 const States = require("./Models/states");
@@ -19,14 +18,13 @@ sequelize
   .catch((err) => {
     console.error("Unable to connect to the database:", err);
   });
+
 app.use(
   cors({
     origin: "http://localhost:8080",
     credentials: true,
   })
 );
-
-app.use(cookieParser());
 
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
