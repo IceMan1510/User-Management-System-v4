@@ -1,13 +1,15 @@
 const bcrypt = require("bcrypt");
-const sequelize = require("../Config/database");
-const Addresses = require("../Models/addresses");
-const Cities = require("../Models/cities");
-const States = require("../Models/states");
-const Users = require("../Models/users");
+const sequelize = require("../config/database");
+const Addresses = require("../models/addresses");
+const Cities = require("../models/cities");
+const States = require("../models/states");
+const Users = require("../models/users");
 const { Op } = require("sequelize");
+const BlackTokens = require("../models/blacktokens");
+const { mapState } = require("../util/state-map");
+const { dataRestructure } = require("../util/data-restructure");
 
-exports.getAllUsersService = async (page) => {
-  const limit = 4;
+exports.getAllUsersService = async (page, limit) => {
   const offset = (page - 1) * limit;
   //This find all method works same as select statement and we can declare all the attributes inside the method
   //Also we do not have to specify the join explicitly as sequelize takes care of that internally. Also instead of join we have
@@ -39,7 +41,11 @@ exports.getAllUsersService = async (page) => {
   });
   //The count method works same as
   //SELECT count(*) FROM Users;
-  const totalRecords = await Users.count();
+  const totalRecords = await Users.count({
+    where: {
+      del: "0",
+    },
+  });
 
   return {
     data: dataRestructure(data),
@@ -83,7 +89,6 @@ exports.getSingleUserService = async (id) => {
 // UPDATE users set del='1' where u_id= <User Id>
 exports.deleteUserService = async (id) => {
   const del = await Users.update({ del: "1" }, { where: { u_id: `${id}` } });
-  console.log(del[0]);
   if (del[0] === 0) {
     return false;
   } else {
@@ -152,49 +157,41 @@ exports.createUserService = async (user) => {
   user.email = user.email.toLowerCase();
   const hash = bcrypt.hashSync(user.password, 10);
   user.password = hash;
-  const isUnique = await Users.findAll({ where: { email: `${user.email}` } });
-  if (isUnique.length !== 0) {
-    return { success: false, body: `Email already exists` };
-  } else {
-    const result = await sequelize.transaction(async (t) => {
-      const createCity = await Cities.create(
-        {
-          city_name: user.city_name,
-          stateStateId: mapState(user.state_name),
-        },
-        { transaction: t }
-      );
-      const createUser = await Users.create(
-        {
-          f_name: user.f_name,
-          m_name: user.m_name,
-          l_name: user.l_name,
-          email: user.email,
-          contact: user.contact,
-          password: user.password,
-          date_of_birth: user.date_of_birth,
-          gender: user.gender,
-          createdby: user.createdBy,
-        },
-        { transaction: t }
-      );
-      const createAddress = await Addresses.create(
-        {
-          address_line1: user.address_line1,
-          address_line2: user.address_line2,
-          landmark: user.landmark,
-          zip_code: user.zip_code,
-          userUId: createUser.u_id,
-          cityCityId: createCity.city_id,
-        },
-        { transaction: t }
-      );
-    });
-    return {
-      success: true,
-      body: `Thank You For Registrations ${user.f_name}`,
-    };
-  }
+  const result = await sequelize.transaction(async (t) => {
+    const createCity = await Cities.create(
+      {
+        city_name: user.city_name,
+        stateStateId: mapState(user.state_name),
+      },
+      { transaction: t }
+    );
+    const createUser = await Users.create(
+      {
+        f_name: user.f_name,
+        m_name: user.m_name,
+        l_name: user.l_name,
+        email: user.email,
+        contact: user.contact,
+        password: user.password,
+        date_of_birth: user.date_of_birth,
+        gender: user.gender,
+        createdby: user.createdBy,
+      },
+      { transaction: t }
+    );
+    const createAddress = await Addresses.create(
+      {
+        address_line1: user.address_line1,
+        address_line2: user.address_line2,
+        landmark: user.landmark,
+        zip_code: user.zip_code,
+        userUId: createUser.u_id,
+        cityCityId: createCity.city_id,
+      },
+      { transaction: t }
+    );
+  });
+  return true;
 };
 
 exports.logInUserService = async (data) => {
@@ -212,112 +209,11 @@ exports.logInUserService = async (data) => {
   }
 };
 
-var mapState = (State) => {
-  switch (State) {
-    case "Andhra Pradesh":
-      return 1;
-    case "Gujrat":
-      return 2;
-    case "Andaman and Nicobar Islands":
-      return 3;
-    case "Lakshadweep":
-      return 4;
-    case "Dadar and Nagar Haveli":
-      return 5;
-    case "Jharkhand":
-      return 6;
-    case "Puducherry":
-      return 7;
-    case "Haryana":
-      return 8;
-    case "Delhi":
-      return 9;
-    case "Himachal Pradesh":
-      return 10;
-    case "Daman and Diu":
-      return 11;
-    case "Arunachal Pradesh":
-      return 12;
-    case "Jammu and Kashmir":
-      return 13;
-    case "Goa":
-      return 14;
-    case "Maharashtra":
-      return 15;
-    case "Madhya Pradesh":
-      return 16;
-    case "Meghalaya":
-      return 17;
-    case "Karnataka":
-      return 18;
-    case "Assam":
-      return 19;
-    case "Manipur":
-      return 20;
-    case "Kerala":
-      return 21;
-    case "Punjab":
-      return 22;
-    case "Nagaland":
-      return 23;
-    case "Rajasthan":
-      return 24;
-    case "Odisha":
-      return 25;
-    case "Mizoram":
-      return 26;
-    case "Tripura":
-      return 27;
-    case "Uttar Pradesh":
-      return 28;
-    case "Chhattisgarh":
-      return 29;
-    case "Sikkim":
-      return 30;
-    case "Bihar":
-      return 31;
-    case "Tamil Nadu":
-      return 32;
-    case "Uttarakhand":
-      return 33;
-    case "Telangana":
-      return 34;
-    case "West Bengal":
-      return 35;
-    default:
-      break;
+exports.logOutUserService = async (data) => {
+  if (data.length !== 0) {
+    const token = await BlackTokens.create({ token: data.token });
+    return true;
+  } else {
+    return false;
   }
-};
-
-const dataRestructure = (data) => {
-  const result = [];
-  for (let index = 0; index < data.length; index++) {
-    const userData = data[index].user;
-    const userAddress = data[index];
-    const userCities = data[index].city;
-    const userState = userCities.state;
-    const res = {
-      u_id: userData.u_id,
-      f_name: userData.f_name,
-      m_name: userData.m_name,
-      l_name: userData.l_name,
-      email: userData.email,
-      contact: userData.contact,
-      password: userData.password,
-      date_of_birth: userData.date_of_birth,
-      gender: userData.gender,
-      del: userData.del,
-      add_id: userAddress.add_id,
-      address_line1: userAddress.address_line1,
-      address_line2: userAddress.address_line2,
-      landmark: userAddress.landmark,
-      zip_code: userAddress.zip_code,
-      city_id: userCities.city_id,
-      city_name: userCities.city_name,
-      state_id: userState.state_id,
-      state_name: userState.state_name,
-    };
-    result.push(res);
-  }
-  return result;
 };

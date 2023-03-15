@@ -1,5 +1,5 @@
 const { Sequelize, DataTypes } = require("sequelize");
-const sequelize = require("../Config/database");
+const sequelize = require("../config/database");
 const States = require("./states");
 
 //The below Cities model is equivalent to creating a table with Below Columns

@@ -1,9 +1,10 @@
 <script>
-  import Table from "./Table.svelte";
+  import { Route, Router, Link, navigate } from "svelte-routing";
+  import Table from "./table.svelte";
   import toast, { Toaster } from "svelte-french-toast";
-  import UserForm from "../User Action/UserForm.svelte";
-  import Header from "../Shared/Header/Header.svelte";
-  import LogIn from "./LogIn.svelte";
+  import UserForm from "./user-form.svelte";
+  import Header from "../Shared/header/header.svelte";
+  import LogIn from "./login.svelte";
   let foundSearchData = [];
   let userData = [];
   let dataToBeUpdated = "";
@@ -16,20 +17,23 @@
   let searchData = "";
   console.log(sessionStorage.length);
   $: block = sessionStorage.length === 0 ? "logIn" : "dashboard";
-
+  sessionStorage.length !== 0 ? navigate("dashboard") : navigate("/");
   let totalRecordPerPage = "";
+
   $: buttonStatusOnEvent = (event) => {
     if (event.detail.block === "userForm") {
-      block = "userForm";
+      navigate("register");
     } else if (event.detail.block === "dashboard") {
       page = 1;
-      block = "dashboard";
+      fetchData();
+      navigate("dashboard");
     } else if (event.detail.block === "searchField") {
-      block = "searchField";
       searchData = event.detail.data;
+      navigate(`search`);
       getSingleId(searchData);
     } else if (event.detail.block === "logIn") {
-      block = "logIn";
+      navigate("/");
+      logOut();
     }
   };
   $: pageNumber = (e) => {
@@ -42,6 +46,25 @@
     } else if (e.detail > 0 && e.detail <= totalPages) {
       page = e.detail;
       fetchData();
+    }
+  };
+  const logOut = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/user/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          token: sessionStorage.getItem("auth"),
+        }),
+      });
+      if (res.status === 200) {
+        navigate("/");
+        sessionStorage.clear();
+      }
+    } catch (error) {
+      navigate("/");
     }
   };
   const logIn = async (e) => {
@@ -57,17 +80,18 @@
         }),
       });
       const data = await res.json();
+      console.log(await data);
       sessionStorage.setItem("auth", data.accessToken);
       userName = data.payload;
       sessionStorage.setItem("userName", data.payload);
-      sessionStorage.setItem("userEmail", e.detail.email);
       const status = res.status;
       console.log(status);
       if (status === 200) {
         toast.success(`Welcome ${data.payload} `, {
           position: "bottom-center",
         });
-        block = "dashboard";
+
+        navigate("/dashboard");
       } else {
         toast.error(`Email Or Password Failed`, {
           position: "bottom-center",
@@ -79,7 +103,7 @@
   };
   const fetchData = async () => {
     try {
-      const url = `http://localhost:4000/user/?page=${page}`;
+      const url = `http://localhost:4000/user/?page=${page}&limit=4`;
       const res = await fetch(url, {
         credentials: "include",
         method: "GET",
@@ -88,16 +112,13 @@
         },
       });
       let response = await res.json();
-      console.log(response);
+
       userData = response.data;
-      console.log(userData);
-      totalPages = response.totalPages; // Total number of pages (totalrecord/8)
+      totalPages = response.totalPages; // Total number of pages (totalRecord/8)
       totalRecords = response.totalRecords; //Total record in the db
       totalRecordPerPage = userData.length; //Records per page
     } catch (error) {
-      block = "logIn";
-      console.log(block);
-      console.log(error);
+      navigate("/");
     } finally {
       () => {
         loading = false;
@@ -135,7 +156,7 @@
 
   var updateDataSend = async (e) => {
     try {
-      block = "updateUser";
+      navigate("/update");
       dataToBeUpdated = e.detail;
     } catch (error) {
       console.log(error);
@@ -190,7 +211,7 @@
         var resText = await response.text();
         console.log(resText);
         if (response.status === 200) {
-          block = "dashboard";
+          navigate("/dashboard");
           toast.success(`Data Updated For ${updatedData.f_name}`, {
             position: "bottom-center",
           });
@@ -212,7 +233,7 @@
         credentials: "include",
         method: "GET",
         headers: {
-          auth: await sessionStorage.getItem("auth"),
+          auth: sessionStorage.getItem("auth"),
         },
       });
       let response = await res.json();
@@ -231,7 +252,7 @@
       toast.error(`Data Not Found`, {
         position: "bottom-center",
       });
-      block = "dashboard";
+      navigate("dashboard");
     }
   };
   const doPost = async (e) => {
@@ -267,7 +288,7 @@
       const response = await res.text();
       const status = res.status;
       if (status === 200) {
-        block = "dashboard";
+        navigate("dashboard");
         toast.success(`${response}`, {
           position: "bottom-center",
         });
@@ -286,7 +307,50 @@
 
 <Toaster />
 <Header {block} {userName} on:message={buttonStatusOnEvent} />
-{#if block === "logIn"}
+<Router>
+  <Route path="/">
+    <LogIn on:message={logIn} />
+  </Route>
+  <Route path="dashboard">
+    <Table
+      {userData}
+      {fetchData}
+      {totalRecords}
+      {totalPages}
+      {totalRecordPerPage}
+      {page}
+      on:delete={deleteClick}
+      on:update={updateDataSend}
+      on:page={pageNumber}
+      on:next={pageNumber}
+      on:prev={pageNumber}
+    />
+  </Route>
+  <Route path="register">
+    <UserForm on:post={doPost} />
+  </Route>
+  <Route path="update">
+    <UserForm {dataToBeUpdated} on:update={updatingTheData} />
+  </Route>
+  <Route path="search">
+    <Table
+      userData={foundSearchData}
+      fetchData={getSingleId}
+      {totalRecords}
+      {totalPages}
+      {searchData}
+      {totalRecordPerPage}
+      {page}
+      on:delete={deleteClick}
+      on:update={updateDataSend}
+      on:page={pageNumber}
+      on:next={pageNumber}
+      on:prev={pageNumber}
+    />
+  </Route>
+</Router>
+
+<!-- {#if block === "logIn"}
   <LogIn on:message={logIn} />
 {:else if block === "dashboard"}
   <Table
@@ -321,4 +385,4 @@
     on:next={pageNumber}
     on:prev={pageNumber}
   />
-{/if}
+{/if} -->

@@ -3,7 +3,6 @@
   let limit = 4;
   import { createEventDispatcher, onMount } from "svelte";
   import { tooltip } from "@svelte-plugins/tooltips";
-
   import { Confirm } from "svelte-confirm";
   import Loader from "../Shared/Loader/Loader.svelte";
   const dispatch = createEventDispatcher();
@@ -14,7 +13,6 @@
     const year = date.getFullYear(); // get year
     return `${day}/${month}/${year}`; // concatenate day, month, and year in the desired format
   };
-
   export let userData;
   export let fetchData;
   export let totalRecords;
@@ -22,6 +20,7 @@
   export let searchData;
   export let totalRecordPerPage;
   export let page;
+  console.log(page);
   /**
    *  Broadcast the delete event once the user clicks on the delete button in the table.
    *  @param {string}-The id of the user clicked.
@@ -45,17 +44,30 @@
   const handleNext = () => {
     dispatch("next", { message: "next" });
   };
+
   onMount(() => {
-    if (searchData === "") {
+    if (searchData === "" || searchData === undefined) {
       fetchData();
+
       setTimeout(() => {
         loading = false;
-      }, 1000);
+      }, 250);
+    } else {
+      setTimeout(() => {
+        loading = false;
+      }, 250);
     }
-    fetchData(searchData);
-    setTimeout(() => {
-      loading = false;
-    }, 1000);
+
+    // if (searchData === "") {
+    //   setTimeout(() => {
+    //     loading = false;
+    //   }, 1000);
+    // } else {
+    //   fetchData(searchData);
+    //   setTimeout(() => {
+    //     loading = false;
+    //   }, 1000);
+    // }
   });
 </script>
 
@@ -145,11 +157,10 @@
               class={1 === page ? "invisible" : "page-link"}
               on:click={() => {
                 handlePrev();
-
                 loading = true;
                 setTimeout(() => {
                   loading = false;
-                }, 500);
+                }, 250);
               }}>Previous</a
             >
           </li>
@@ -162,7 +173,7 @@
                   loading = true;
                   setTimeout(() => {
                     loading = false;
-                  }, 500);
+                  }, 250);
                 }}
                 class="page-link">{i++ + 1}</a
               >
@@ -177,7 +188,7 @@
                 loading = true;
                 setTimeout(() => {
                   loading = false;
-                }, 500);
+                }, 250);
               }}>Next</a
             >
           </li>

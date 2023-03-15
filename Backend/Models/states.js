@@ -1,5 +1,5 @@
 const { Sequelize, DataTypes } = require("sequelize");
-const sequelize = require("../Config/database");
+const sequelize = require("../config/database");
 //The below States model is equivalent to creating a table with Below Columns
 // CREATE TABLE ums.states (
 //   state_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

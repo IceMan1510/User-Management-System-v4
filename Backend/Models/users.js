@@ -1,5 +1,5 @@
 const { Sequelize, DataTypes } = require("sequelize");
-const sequelize = require("../Config/database");
+const sequelize = require("../config/database");
 //The below Users model is equivalent to creating a table with Below Columns
 // CREATE TABLE users (u_id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, f_name VARCHAR(20) NOT NULL,
 // m_name VARCHAR(20) NOT NULL, l_name VARCHAR(20) NOT NULL, email VARCHAR(255) NOT NULL UNIQUE,
@@ -59,6 +59,11 @@ const Users = sequelize.define("users", {
   updatedby: {
     type: DataTypes.STRING(50),
     allowNull: true,
+  },
+  role: {
+    type: DataTypes.STRING(5),
+    defaultValue: "0",
+    allowNull: false,
   },
 });
 

@@ -37,7 +37,6 @@
       <div
         class="dropdown-menu"
         on:click={() => {
-          window.sessionStorage.clear();
           dispatch("message", { block: "logIn" });
         }}
         aria-labelledby="dropdownMenuButton"

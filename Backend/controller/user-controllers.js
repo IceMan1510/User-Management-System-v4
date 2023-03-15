@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 const validator = require("validator");
-const { createTokens } = require("../Auth/jwt");
-
+const { createAccessTokens } = require("../auth/jwt");
+const BlackTokens = require("../models/blacktokens");
 const {
   getAllUsersService,
   getSingleUserService,
@@ -9,7 +9,14 @@ const {
   updateUserService,
   createUserService,
   logInUserService,
-} = require("../Services/userServices");
+  logOutUserService,
+} = require("../services/user-services");
+const {
+  checkRole,
+  checkRoleById,
+  checkRoleByEmail,
+} = require("../util/check-role");
+const { isEmailExists } = require("../util/is-email-exists");
 
 let checkPwd = (str) => {
   if (
@@ -114,7 +121,8 @@ exports.getUsers = async (req, res) => {
     const params = req.params;
     if (JSON.stringify(params) === "{}") {
       var page = req.query.page;
-      var serviceResponse = await getAllUsersService(page);
+      var limit = req.query.limit;
+      var serviceResponse = await getAllUsersService(page, limit);
       res.status(200).send(serviceResponse);
     } else {
       var serviceResponse = await getSingleUserService(params.id);
@@ -132,27 +140,34 @@ exports.getUsers = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   try {
-    const id = req.params.id;
-    const result = await deleteUserService(id);
-    if (result) {
-      res
-        .status(200)
-        .send({ message: `User with ID ${id} deleted successfully` });
+    var role = await checkRoleByEmail(res.locals.email);
+    const id = req.id;
+    if (role !== "admin" || role === undefined || role === "") {
+      res.status(401).send(`Not authorized`);
     } else {
-      res.status(404).send(`No user found with ID ${id}`);
+      const result = await deleteUserService(id);
+      if (result) {
+        res
+          .status(200)
+          .send({ message: `User with ID ${id} deleted successfully` });
+      } else {
+        res.status(404).send(`No user found with ID ${id}`);
+      }
     }
   } catch (error) {
+    res.status(500).send(`Internal Server Error`);
     console.log(error);
-    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
 exports.updateUser = async (req, res) => {
   try {
+    var role = await checkRoleByEmail(res.locals.email);
     const body = req.body;
-    console.log(body);
     const id = req.params.id;
-    if (allValidForUpdate(body)) {
+    if (role !== "admin" || role === undefined || role === "") {
+      res.status(401).send(`Not authorized`);
+    } else if (allValidForUpdate(body)) {
       return res.status(404).send(`Enter valid data`);
     } else if (body.password === "" && body.confirmPassword === "") {
       body.password = body.passForVerification;
@@ -184,16 +199,17 @@ exports.updateUser = async (req, res) => {
 exports.addUser = async (req, res) => {
   try {
     const user = req.body;
-
-    if (allValid(user)) {
+    var role = await checkRoleByEmail(res.locals.email);
+    var isEmailExists = await isEmailExists(user.email);
+    if (role !== "admin" || role === undefined || role === "") {
+      res.status(401).send(`Not authorized`);
+    } else if (allValid(user)) {
       res.status(400).send("Please enter appropriate data");
+    } else if (isEmailExists === user.email) {
+      res.status(400).send("Email already exists");
     } else {
       var serviceResponse = await createUserService(user);
-      if (serviceResponse.success === false) {
-        res.status(400).send(serviceResponse.body);
-      } else {
-        res.status(200).send(serviceResponse.body);
-      }
+      res.status(200).send(`Thank you for registration ${user.f_name}`);
     }
   } catch (error) {
     console.log(error);
@@ -201,23 +217,42 @@ exports.addUser = async (req, res) => {
   }
 };
 exports.loginUser = async (req, res) => {
-  if (req.body.email.trim() === "" || req.body.password.trim() === "") {
-    res
-      .status(401)
-      .send({ accessToken: null, Response: "Email Or Password Mismatch" });
-  } else {
-    const result = await logInUserService(req.body);
-    console.log(result);
-    if (result.success) {
-      const accessToken = createTokens(req.body);
-
-      res.status(200).send({
-        accessToken: accessToken,
-        payload: await result.payload,
-        Response: "Successfully Logged In",
-      });
+  try {
+    if (
+      req.body.email.trim().length === 0 ||
+      req.body.password.trim().length === 0
+    ) {
+      res
+        .status(401)
+        .send({ accessToken: null, Response: "Email Or Password Mismatch" });
     } else {
-      res.status(401).send({ Response: "Failed To Log In" });
+      const result = await logInUserService(req.body);
+      if (result.success) {
+        const accessToken = createAccessTokens(req.body);
+        const response = {
+          accessToken: accessToken,
+          payload: await result.payload,
+          Response: "Successfully Logged In",
+        };
+        res.status(200).send(response);
+      } else {
+        res.status(401).send({ Response: "Failed To Log In" });
+      }
     }
+  } catch (error) {
+    res.status(500).send({ Response: "Internal Server Error" });
+  }
+};
+
+exports.logOut = async (req, res) => {
+  try {
+    const result = logOutUserService(req.body);
+    if (result) {
+      res.status(200).send("Successfully logged out");
+    } else {
+      res.status(404).send("Not Found");
+    }
+  } catch (error) {
+    res.status(500).send("Internal Server Error");
   }
 };
